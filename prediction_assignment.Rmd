@@ -1,0 +1,33 @@
+---
+title: "Predicting Action from Wearable Device Data"
+author: "Steeg Pierce"
+date: "6/5/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r loadData, include = FALSE}
+training <- read.csv('https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv')
+testing <- read.csv('https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv')
+```
+
+## Summary
+
+We will be looking at data collected from wearable devices such as smart watches during various exercise and looking to classify it into different degrees of proper form based on the levels given in the data. I have already loaded the data with a call to read.csv() for a training and test set of said data. With the training set, we will create a machine learning algorithm that attemps to predict the "correctness" of the action being taken.
+
+## Exploring the Data
+
+
+
+## Creating the Model
+
+The instructions from the assignment tell us that the variable classifying the "correctness" is 'classe', so we will be using that as the dependent variable. The data includes 160 different variables and we will attempt to reduce that number using a principle components analysis preprocessing technique.
+
+```{r prelim, echo = TRUE}
+tc <- trainControl(method = 'LOOCV')
+fitRF <- train(classe ~ ., method = 'rf', preProcess = c('pca', 'knnImpute'),
+               PCAthresh = 0.95, trControl = tc, data = training)
+```
