@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+library(caret)
 ```
 
 ```{r loadData, include = FALSE}
@@ -20,7 +21,12 @@ We will be looking at data collected from wearable devices such as smart watches
 
 ## Exploring the Data
 
+By looking at the structure of the dataframe, we can see that there are 160 variables and 67 of them are made up of 98% NA. We can also see that of those with NA, the data they do carry are transformations of the other variables. As such, we can feel comfortable removing them from the variables with NA from the model.
 
+```{r cleanData, include = FALSE}
+trainClean <- training[, colSums(is.na(training)) == 0]
+testClean <- testing[, colSums(is.na(training)) == 0]
+```
 
 ## Creating the Model
 
