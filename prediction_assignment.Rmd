@@ -26,20 +26,27 @@ By looking at the structure of the dataframe, we can see that there are 160 vari
 ```{r cleanData, include = FALSE}
 trainClean <- data[, colSums(is.na(data)) == 0]
 testClean <- quiz[, colSums(is.na(data)) == 0]
+set.seed(150)
 inTrain <- createDataPartition(trainClean$classe, p = .6)
-training <- trainClean[, inTrain]
-temp <- trainClean[, -inTrain]
+training <- trainClean[inTrain, ]
+temp <- trainClean[-inTrain, ]
+set.seed(200)
 inValidation <- createDataPartition(temp$classe, p = .5)
-validation <- temp[, inValidation]
-testing <- temp[, -inValidation]
+validation <- temp[inValidation, ]
+testing <- temp[-inValidation, ]
+pre <- preProcess(training, method = 'pca', thresh = .95)
+trainPCA <- predict(pre, newdata = training)
 ```
 
-## Creating the Model
+## Training the Model
 
 The instructions from the assignment tell us that the variable classifying the "correctness" is 'classe', so we will be using that as the dependent variable. The data includes 160 different variables and we will attempt to reduce that number using a principle components analysis preprocessing technique.
 
 ```{r prelim, echo = TRUE}
-tc <- trainControl(method = 'LOOCV')
-fitRF <- train(classe ~ ., method = 'rf', preProcess = c('pca', 'knnImpute'),
-               PCAthresh = 0.95, trControl = tc, data = training)
+tc <- trainControl(method = 'repeatedcv', number = 10, repeats = 10)
+set.seed(250)
+fitRF <- train(classe ~ ., method = 'rf', trControl = tc, data = trainPCA)
+set.seed(300)
+fitADA <- train(classe ~ ., method = 'adaboost', trControl = tc, data = trainPCA)
+
 ```
