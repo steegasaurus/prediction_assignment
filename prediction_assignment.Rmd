@@ -11,8 +11,8 @@ library(caret)
 ```
 
 ```{r loadData, include = FALSE}
-training <- read.csv('https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv')
-testing <- read.csv('https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv')
+data <- read.csv('https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv')
+quiz <- read.csv('https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv')
 ```
 
 ## Summary
@@ -26,6 +26,7 @@ By looking at the structure of the dataframe, we can see that there are 160 vari
 ```{r cleanData, include = FALSE}
 trainClean <- training[, colSums(is.na(training)) == 0]
 testClean <- testing[, colSums(is.na(training)) == 0]
+
 ```
 
 ## Creating the Model
