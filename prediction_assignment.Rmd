@@ -24,9 +24,14 @@ We will be looking at data collected from wearable devices such as smart watches
 By looking at the structure of the dataframe, we can see that there are 160 variables and 67 of them are made up of 98% NA. We can also see that of those with NA, the data they do carry are transformations of the other variables. As such, we can feel comfortable removing them from the variables with NA from the model.
 
 ```{r cleanData, include = FALSE}
-trainClean <- training[, colSums(is.na(training)) == 0]
-testClean <- testing[, colSums(is.na(training)) == 0]
-
+trainClean <- data[, colSums(is.na(data)) == 0]
+testClean <- quiz[, colSums(is.na(data)) == 0]
+inTrain <- createDataPartition(trainClean$classe, p = .6)
+training <- trainClean[, inTrain]
+temp <- trainClean[, -inTrain]
+inValidation <- createDataPartition(temp$classe, p = .5)
+validation <- temp[, inValidation]
+testing <- temp[, -inValidation]
 ```
 
 ## Creating the Model
