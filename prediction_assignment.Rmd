@@ -26,27 +26,47 @@ By looking at the structure of the dataframe, we can see that there are 160 vari
 ```{r cleanData, include = FALSE}
 trainClean <- data[, colSums(is.na(data)) == 0]
 testClean <- quiz[, colSums(is.na(data)) == 0]
-set.seed(150)
-inTrain <- createDataPartition(trainClean$classe, p = .6)
-training <- trainClean[inTrain, ]
-temp <- trainClean[-inTrain, ]
-set.seed(200)
-inValidation <- createDataPartition(temp$classe, p = .5)
-validation <- temp[inValidation, ]
-testing <- temp[-inValidation, ]
-pre <- preProcess(training, method = 'pca', thresh = .95)
-trainPCA <- predict(pre, newdata = training)
 ```
 
 ## Training the Model
 
-The instructions from the assignment tell us that the variable classifying the "correctness" is 'classe', so we will be using that as the dependent variable. The data includes 160 different variables and we will attempt to reduce that number using a principle components analysis preprocessing technique.
+The instructions from the assignment tell us that the variable classifying the "correctness" is 'classe', so we will be using that as the dependent variable. We will attempt to reduce excess variables by preprocessing with principle components analysis. 
+
+```{r preproc, echo = TRUE}
+set.seed(150)
+inTrain <- createDataPartition(trainClean$classe, p = .6, list = FALSE)
+training <- trainClean[inTrain, ]
+temp <- trainClean[-inTrain, ]
+set.seed(200)
+inValidation <- createDataPartition(temp$classe, p = .5, list = FALSE)
+validation <- temp[inValidation, ]
+testing <- temp[-inValidation, ]
+pre <- preProcess(training, method = 'pca', thresh = .95)
+trainPCA <- predict(pre, newdata = training)
+training$classe <- factor(training$classe)
+```
+
+Training the model will include *k-fold cross-validation* with 10 folds and 10 repeats. Simulations imply that additionaly folds after 10 become less impactful and we want a stable model. Additionally, given the amount of data, too many folds may become too computationally demanding. We will fit three models to the training data: a random forest, a boosted tree, and a normal classification tree. We will also fit a stacked model of these three models before testing each of the four models on the validation data. We can test the accuracy of the most effective model on the testing set.
 
 ```{r prelim, echo = TRUE}
 tc <- trainControl(method = 'repeatedcv', number = 10, repeats = 10)
 set.seed(250)
+# Random forest model
 fitRF <- train(classe ~ ., method = 'rf', trControl = tc, data = trainPCA)
 set.seed(300)
-fitADA <- train(classe ~ ., method = 'adaboost', trControl = tc, data = trainPCA)
-
+# Boosted tree
+fitADA <- train(classe ~ ., method = 'ada', trControl = tc, data = trainPCA) #binary only
+set.seed(350)
+# Classification tree
+fitTREE <- train(classe ~ ., method = 'rpart', trControl = tc, data = trainPCA)
 ```
+
+
+
+### Validation and Testing
+
+We can now test the different models on the validation set using the confusionMatrix() function to test each for accuracy. 
+
+
+
+With a better idea of the comparitve success of each model, we will test the most accurate model on the testing set before we use it to predict classes in the quiz set.
