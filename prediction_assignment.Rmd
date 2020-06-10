@@ -8,6 +8,8 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 library(caret)
+library(gbm)
+library(randomForest)
 ```
 
 ```{r loadData, include = FALSE}
@@ -50,11 +52,11 @@ training$classe <- factor(training$classe)
 
 Training the model will include *k-fold cross-validation* with 10 folds and 10 repeats. Simulations imply that additionaly folds after 10 become less impactful and we want a stable model. Additionally, given the amount of data, too many folds may become too computationally demanding. We will fit three models to the training data: a random forest, a boosted tree, and a normal classification tree. We will also fit a stacked model of these three models before testing each of the four models on the validation data. We can test the accuracy of the most effective model on the testing set.
 
-```{r prelim, echo = TRUE}
+```{r prelim, echo = TRUE, include = FALSE}
 tc <- trainControl(method = 'repeatedcv', number = 5, repeats = 2, verboseIter = FALSE)
-set.seed(250)
+set.seed(521)
 # Random forest model
-fitRF <- train(classe ~ ., method = 'ranger', trControl = tc, data = trainPCA)
+fitRF <- train(classe ~ ., method = 'rf', trControl = tc, data = trainPCA)
 set.seed(300)
 # Boosted tree
 fitGBM <- train(classe ~ ., method = 'gbm', trControl = tc, data = trainPCA, verbose = FALSE)
