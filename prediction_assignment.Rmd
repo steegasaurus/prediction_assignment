@@ -8,6 +8,8 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 library(caret)
+library(gbm)
+library(randomForest)
 ```
 
 ```{r loadData, include = FALSE}
@@ -17,20 +19,22 @@ quiz <- read.csv('https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testin
 
 ## Summary
 
-We will be looking at data collected from wearable devices such as smart watches during various exercise and looking to classify it into different degrees of proper form based on the levels given in the data. I have already loaded the data with a call to read.csv() for a training and test set of said data. With the training set, we will create a machine learning algorithm that attemps to predict the "correctness" of the action being taken.
+We will be looking at data collected from wearable devices such as smart watches during various exercise and looking to classify it into different degrees of proper form based on the levels given in the data. I have already loaded the data with a call to read.csv() for a training and test set of said data. With the training set, we will create a machine learning algorithm that attemps to predict the "correctness" of the exercise.
 
 ## Exploring the Data
 
-By looking at the structure of the dataframe, we can see that there are 160 variables and 67 of them are made up of 98% NA. We can also see that of those with NA, the data they do carry are transformations of the other variables. As such, we can feel comfortable removing them from the variables with NA from the model.
+By looking at the structure of the quiz dataframe, we can see that there are 160 variables and 100 of them are made up of majority NA. We can also see that of those with NA, the data they do carry are transformations of the other variables. As such, we can feel comfortable removing them from the variables with NA from the model. Additionally, the first 7 variables are related to time or user, which is not relevant to our predection. We will remove those ase well. We're left with 52 predictors.
 
 ```{r cleanData, include = FALSE}
-trainClean <- data[, colSums(is.na(data)) == 0]
-testClean <- quiz[, colSums(is.na(data)) == 0]
+trainClean <- data[, colSums(is.na(quiz)) == 0]
+testClean <- quiz[, colSums(is.na(quiz)) == 0]
+trainClean <- trainClean[, -c(1:7)]
+testClean <- testClean[, -c(1:7)]
 ```
 
 ## Training the Model
 
-The instructions from the assignment tell us that the variable classifying the "correctness" is 'classe', so we will be using that as the dependent variable. We will attempt to reduce excess variables by preprocessing with principle components analysis. 
+The instructions from the assignment tell us that the variable classifying the "correctness" is 'classe', so we will be using that as the dependent variable. A principle component analysis will reduce the number of 
 
 ```{r preproc, echo = TRUE}
 set.seed(150)
@@ -41,24 +45,24 @@ set.seed(200)
 inValidation <- createDataPartition(temp$classe, p = .5, list = FALSE)
 validation <- temp[inValidation, ]
 testing <- temp[-inValidation, ]
-pre <- preProcess(training, method = 'pca', thresh = .95)
+pre <- preProcess(training, method = 'pca', thresh = .9)
 trainPCA <- predict(pre, newdata = training)
 training$classe <- factor(training$classe)
 ```
 
 Training the model will include *k-fold cross-validation* with 10 folds and 10 repeats. Simulations imply that additionaly folds after 10 become less impactful and we want a stable model. Additionally, given the amount of data, too many folds may become too computationally demanding. We will fit three models to the training data: a random forest, a boosted tree, and a normal classification tree. We will also fit a stacked model of these three models before testing each of the four models on the validation data. We can test the accuracy of the most effective model on the testing set.
 
-```{r prelim, echo = TRUE}
-tc <- trainControl(method = 'repeatedcv', number = 5, repeats = 2)
-set.seed(250)
+```{r prelim, echo = TRUE, include = FALSE}
+tc <- trainControl(method = 'repeatedcv', number = 5, repeats = 2, verboseIter = FALSE)
+set.seed(521)
 # Random forest model
 fitRF <- train(classe ~ ., method = 'ranger', trControl = tc, data = trainPCA)
 set.seed(300)
 # Boosted tree
-fitADA <- train(classe ~ ., method = 'ada', trControl = tc, data = trainPCA) #binary only
+fitGBM <- train(classe ~ ., method = 'gbm', trControl = tc, data = trainPCA, verbose = FALSE)
 set.seed(350)
 # Classification tree
-fitTREE <- train(classe ~ ., method = 'rpart', trControl = tc, data = trainPCA)
+fitLDA <- train(classe ~ ., method = 'lda', trControl = tc, data = trainPCA)
 ```
 
 
