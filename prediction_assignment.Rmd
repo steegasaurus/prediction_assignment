@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = FALSE)
 library(caret)
 library(gbm)
 library(randomForest)
+library(rpart)
 ```
 
 ```{r loadData, include = FALSE}
@@ -19,7 +20,7 @@ quiz <- read.csv('https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testin
 
 ## Summary
 
-We will be looking at data collected from wearable devices such as smart watches during various exercise and looking to classify it into different degrees of proper form based on the levels given in the data. I have already loaded the data with a call to read.csv() for a training and test set of said data. With the training set, we will create a machine learning algorithm that attemps to predict the "correctness" of the exercise.
+We will be looking at data collected from wearable devices such as smart watches during bicep curls and looking to classify it into different degrees of proper form based on the levels given in the data. I have already loaded the data with a call to read.csv() for a training set and the quiz data. With the training set, we will create a machine learning algorithm that attemps to predict the "correctness" of the exercise.
 
 ## Exploring the Data
 
