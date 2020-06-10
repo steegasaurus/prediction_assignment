@@ -1,7 +1,7 @@
 ---
 title: "Predicting Action from Wearable Device Data"
 author: "Steeg Pierce"
-date: "6/5/2020"
+date: "6/10/2020"
 output: html_document
 ---
 
@@ -30,11 +30,12 @@ trainClean <- data[, colSums(is.na(quiz)) == 0]
 testClean <- quiz[, colSums(is.na(quiz)) == 0]
 trainClean <- trainClean[, -c(1:7)]
 testClean <- testClean[, -c(1:7)]
+trainClean$classe <- factor(trainClean$classe)
 ```
 
 ## Training the Model
 
-The instructions from the assignment tell us that the variable classifying the "correctness" is 'classe', so we will be using that as the dependent variable. A principle component analysis will reduce the number of 
+The instructions from the assignment tell us that the variable classifying the "correctness" is 'classe', so we will be using that as the dependent variable. A principle component analysis will reduce the number of predictors while capturing most of the variation.
 
 ```{r preproc, echo = TRUE}
 set.seed(150)
@@ -47,30 +48,70 @@ validation <- temp[inValidation, ]
 testing <- temp[-inValidation, ]
 pre <- preProcess(training, method = 'pca', thresh = .9)
 trainPCA <- predict(pre, newdata = training)
-training$classe <- factor(training$classe)
+validPCA <- predict(pre, validation)
+testPCA <- predict(pre, testing)
+#Output number of principle components
+pre$numComp
 ```
 
-Training the model will include *k-fold cross-validation* with 10 folds and 10 repeats. Simulations imply that additionaly folds after 10 become less impactful and we want a stable model. Additionally, given the amount of data, too many folds may become too computationally demanding. We will fit three models to the training data: a random forest, a boosted tree, and a normal classification tree. We will also fit a stacked model of these three models before testing each of the four models on the validation data. We can test the accuracy of the most effective model on the testing set.
+We can see here that the number of predictors is drastically cut down via a principle component analysis. It went from 53 to 18. This will speed up our model.
 
-```{r prelim, echo = TRUE, include = FALSE}
-tc <- trainControl(method = 'repeatedcv', number = 5, repeats = 2, verboseIter = FALSE)
-set.seed(521)
-# Random forest model
-fitRF <- train(classe ~ ., method = 'ranger', trControl = tc, data = trainPCA)
-set.seed(300)
-# Boosted tree
-fitGBM <- train(classe ~ ., method = 'gbm', trControl = tc, data = trainPCA, verbose = FALSE)
-set.seed(350)
-# Classification tree
+Training the model will include *k-fold cross-validation* with 3 folds. More folds may help . Additionally, given the amount of data, too many folds may become too computationally demanding. We will fit three models to the training data.
+
+First, we'll fit a *Linear Discriminant Analysis*. This will serve as a baseline.
+
+```{r ldaFit, echo = TRUE}
+set.seed(250)
+tc <- trainControl(method = 'cv', number = 3)
 fitLDA <- train(classe ~ ., method = 'lda', trControl = tc, data = trainPCA)
+fitLDA
 ```
 
+It says no pre-processing because we've already done that with a principle component analysis previously. We can see an in-sample accuracy estimate of approximately 50%. It's certainly better than random, but you wouldn't want to rely on a model like that.
 
+Next up, we'll give the *Generalized Boosted Model* a go.
 
-### Validation and Testing
+```{r gbmFit, echo = TRUE}
+set.seed(300)
+fitGBM <- train(classe ~ ., method = 'gbm', trControl = tc, data = trainPCA,
+                verbose = FALSE)
+fitGBM
+```
 
-We can now test the different models on the validation set using the confusionMatrix() function to test each for accuracy. 
+Accuracy is a bit better, but it's still not as good as we'd like. Still, we'll test it on the validation set to see how it does.
 
+```{r gbmVal, echo = TRUE}
+predGBM <- predict(fitGBM, validPCA)
+confusionMatrix(validation$classe, predGBM)
+```
 
+Next up is the more powerful *Random Forest*.
 
-With a better idea of the comparitve success of each model, we will test the most accurate model on the testing set before we use it to predict classes in the quiz set.
+```{r rfFit, echo = TRUE}
+set.seed(350)
+fitRF <- train(classe ~ ., method = 'rf', trControl = tc, data = trainPCA)
+fitRF
+```
+
+Accuracy for the random forest is quite high. We will test this one the validation set as well to get an idea of the out-of-sample error.
+
+```{r rfVal, echo = TRUE}
+predRF <- predict(fitRF, validPCA)
+confusionMatrix(validation$classe, predRF)
+```
+
+### Testing
+
+Having seen that the *random forest* is the most accurate model on the validation set, we will use that on the testing set.
+
+```{r rfTest, echo = TRUE}
+testRF <- predict(fitRF, testPCA)
+confusionMatrix(testing$classe, testRF)
+```
+
+Having confirmed a high degree of accuracy for the model, we can use that to predict the quiz set.
+
+```{r quiz, echo = TRUE}
+quizPCA <- predict(pre, testClean)
+predict(fitRF, quizPCA)
+```
